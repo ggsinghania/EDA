@@ -1,0 +1,243 @@
+---
+title: "EDA Assignment - Some details about India in Graphs"
+author: "Gaurav Singhania"
+date: "3 October 2018"
+output: html_document
+---
+
+```{r setup, include=TRUE, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(
+	fig.align = "center",
+	fig.height = 9,
+	fig.width = 14,
+	message = FALSE,
+	warning = FALSE
+)
+library(dplyr)
+library(ggplot2)
+options(scipen = 999)
+library(ggthemes)
+library(plotly)
+library(readxl)
+library(googleVis)
+```
+
+
+## Importing Datasets
+```{r}
+Capital_Expenditure = read.csv('D:/study/datasets/eda assgnmnt/Capital_Expenditure.csv')#
+crop_prod = read.csv('D:/study/datasets/eda assgnmnt/crop_production.csv')
+gdp = read.csv('D:/study/datasets/eda assgnmnt/gdp.csv')
+commodities = read.csv('D:/study/datasets/eda assgnmnt/india_commodities.csv')#
+population = read.csv('D:/study/datasets/eda assgnmnt/India_population.csv')#
+literacy = read.csv('D:/study/datasets/eda assgnmnt/literacy_rate.csv')#
+inr_price = read_excel('D:/study/datasets/eda assgnmnt/Official exchange rate LCU per USD.xlsx')
+total_reserves = read_excel('D:/study/datasets/eda assgnmnt/Total Reserves.xlsx')#
+```
+
+## Change in the Population of India 
+```{r, fig.width=9, fig.height=6, fig.align = 'center', include=TRUE}
+pop = ggplot(population, aes(Year, Population)) + scale_x_continuous(breaks = c(1970:2018)) +
+  theme_fivethirtyeight() + theme(axis.text.x = element_text(angle = 45, vjust = .6)) + geom_point() +
+  geom_line(size = .8, color = 'black', alpha = .8) +
+  labs(title = 'Population of India',
+       x = 'Year',
+       y = 'Population')
+ggplotly(pop)
+```
+
+#### We can clearly see that India has crossed the 100 Crore mark in 1997. Also, there is a constant increase in the country's population.
+##  .........................................................................................
+##  .........................................................................................
+## Literacy Rate of India.
+```{r, fig.width=9, fig.height=6, fig.align = 'center', include=TRUE}
+colnames(literacy)[37] = 'Literacy Rate'
+literacy_plot = ggplot(literacy, aes(Year, `Literacy Rate`)) +
+  theme_economist_white() + theme(axis.text.x = element_text(angle = 45, vjust = .6)) + geom_point() +
+  geom_line(size = .8, color = 'black') +
+  labs(title = 'Literacy rate of India (According to Census)',
+       x = 'Year',
+       y = 'Literacy Rate')
+
+ggplotly(literacy_plot)
+```
+
+#### Literacy rate in India has increased drastically in last 50 years. It has increased around 400%.
+
+##  .........................................................................................
+##  .........................................................................................
+
+## Capital Expenditure of India.
+```{r, fig.width=9, fig.height=6, fig.align = 'center', include=TRUE}
+cap_exp = ggplot(Capital_Expenditure, aes(Year, Total)) +
+  geom_bar(stat = 'Identity',width = .5, fill = 'springgreen3') + theme_tufte()+
+  labs(title='Capital Expenditure of India (in million INR)',
+       x='Year',
+       y='Expenditure (million INR)')
+
+ggplotly(cap_exp)
+```
+
+#### There is a significant increase in the Capital Expenditure of India. Since 1981, it has grown by 6200% till 2016.
+
+##  .........................................................................................
+##  .........................................................................................
+
+## Total Reserves of India (million USD)
+
+```{r, fig.width=9, fig.height=6, fig.align = 'center', include=TRUE}
+
+res_plot = ggplot(total_reserves, aes(Year, India))+
+  geom_bar(stat = 'Identity',width = .5, fill = 'coral3') + theme_economist()+
+  labs(title='Total Reserves of India (million USD)',
+       x='Year',
+       y='Amount (million USD)')
+
+ggplotly(res_plot)
+```
+
+#### There is a significant increase in the Total reserves of India as well. Since 1990, it has grown by 8000% till 2018.
+
+##  .........................................................................................
+##  .........................................................................................
+
+## Major Grocery Items
+
+```{r, fig.width=9, fig.height=6, fig.align = 'center', include=TRUE}
+commodities$date = as.Date(commodities$date, '%d-%m-%Y')
+commodities$Year = format(commodities$date, '%Y')
+
+comm = commodities %>% group_by(Year, Commodity) %>%
+  summarise(price = mean(Price.per.Kg, na.rm = TRUE)) %>% filter(!Commodity %in% c('Milk','Sunflower Oil (Packed)','Salt Pack (Iodised)','Tomato'))
+
+comm$Year = as.Date(comm$Year, '%Y')
+
+comm_plot = ggplot(comm, aes(Year,price)) + theme_igray() +
+  geom_line(aes(color = Commodity), size = 0.8) +
+  labs(title= 'Change in the Price of Major Grocery Items',
+       x = 'Year',
+       y = 'Price per Kg')
+
+ggplotly(comm_plot)
+```
+
+#### Tea Loose(doubled) and Tur Dal(4 fold) (2 most consumed items in Indian Households) saw a significant increase in their prices in last 20 years. Rice and Onion also saw a 300% increase in their prices. Whereas price of Sugar is slightly increased.
+
+##  .........................................................................................
+##  .........................................................................................
+
+## Crop Production in India 
+
+```{r, fig.width=9, fig.height=6, fig.align = 'center', include=TRUE}
+crop = crop_prod  %>%  group_by(Crop_Year,Season, Crop) %>%
+  summarise(Production = sum(Production, na.rm = TRUE))
+
+major_crop = crop %>% dplyr::filter(Crop == 'Arhar/Tur'| 
+                               Crop =='Bajra'| 
+                               Crop == 'Rice'| 
+                               Crop == 'Jowar' |
+                               Crop == 'Maize'|
+                               Crop == 'Wheat'|
+                               Crop == 'Moong(Green Gram)'|
+                               Crop == 'Ragi'|
+                               Crop == 'Soyabean'|
+                               Crop == 'Urad') %>% 
+  group_by(Crop_Year, Crop) %>% 
+  summarise(Production = sum(Production)) %>% dplyr::filter(Crop_Year != 2015)
+
+crop_plot = ggplot(major_crop, aes(Crop_Year,Production)) + theme_pander() +
+  geom_line(aes(color = Crop), size = 0.8) +
+  labs(title= 'Production of Major Crops',
+       x = 'Year',
+       y = 'Production (Tonnes)')
+
+ggplotly(crop_plot)
+
+```
+
+#### In India,food products made with Rice and Wheat are consumed on a daily basis, that is the reason behind their massive production.
+
+```{r, fig.width=9, fig.height=6, fig.align = 'center', include=TRUE}
+other_crop = crop %>% dplyr::filter(Crop == 'Black pepper'| 
+                               Crop =='Cardamom'| 
+                               Crop == 'Cashewnut'| 
+                               Crop == 'Coriander' |
+                               Crop == 'Dry chillies'|
+                               Crop == 'Ginger'|
+                               Crop == 'Garlic'|
+                               #Crop == 'Onion'|
+                               #Crop == 'Potato'|
+                               Crop == 'Turmeric') %>% 
+  group_by(Crop_Year, Crop) %>% 
+  summarise(Production = sum(Production)) %>% dplyr::filter(Crop_Year != 2015)
+
+othr_crop_plot = ggplot(other_crop, aes(Crop_Year,Production)) + theme_classic() +
+  geom_line(aes(color = Crop), size = 0.8) +
+  labs(title= 'Production of Other Imp Crops',
+       x = 'Year',
+       y = 'Production (Tonnes)')
+
+ggplotly(othr_crop_plot)
+```
+
+##  .........................................................................................
+##  .........................................................................................
+
+## GDP
+
+```{r, fig.width=9, fig.height=6, fig.align = 'center', include=TRUE}
+gdp$GDP =  as.numeric(gdp$GDP)
+
+gdp_plot = ggplot(gdp, aes(Year,GDP)) + theme_solarized() +
+  geom_line(size = 0.8, col = 'orangered2') +
+  labs(title= 'GDP',
+       x = 'Year',
+       y = 'GDP (hundred crore INR)')
+ggplotly(gdp_plot)
+
+```
+
+#### India's GDP shows a gradual growth. It is estimated to perform consistently and steadily.
+
+##  .........................................................................................
+##  .........................................................................................
+
+## INR vs USD
+
+```{r, fig.width=9, fig.height=6, fig.align = 'center', include=TRUE}
+inr = ggplot(inr_price, aes(Year,India)) + theme_solarized() +
+  geom_point()+
+  geom_line(size = 0.8, col = 'orangered2') +
+  labs(title= 'Echange rate versus US Dollar',
+       x = 'Year',
+       y = 'Price')
+
+ggplotly(inr)
+
+```
+
+#### Rupee is continuosly falling against US Dollar. Recently it broke the all time low mark and has crossed 71 rupee/dollar mark.
+
+### Comparision with neighbouring countries. 
+
+```{r, fig.width=9, fig.height=6, fig.align = 'center', include=TRUE}
+
+compare =  ggplot(inr_price, aes(Year)) + theme_solarized_2() + 
+  geom_line(aes(y = Pakistan , col = 'Pakistan'), size = 0.8) + 
+  geom_point(aes(y = Pakistan), color = 'blue') +
+  geom_line(aes(y = India, col = 'India'), size = 0.8) + 
+  geom_point(aes(y = India), color = 'darkgreen')+
+  geom_line(aes(y = China, col = 'China'), size = .8) + 
+  geom_point(aes(y = China), color = 'red') +
+  geom_line(aes(y = `Sri Lanka`, col = 'Sri Lanka'), size = .8) + 
+  geom_point(aes(y = `Sri Lanka`), color = 'purple') +
+  theme(axis.text.x = element_text(angle = 0, vjust = .6),
+        legend.title = element_blank()) +
+  labs(title = 'Comparision with Neighbouring Countries (LCU vs USD)',
+       x = 'Year',
+       y = 'Price')
+
+ggplotly(compare)
+```
+
+#### When we talk about India's neighnours, China is the only country which has successfully managed to strong-arm their Currency against USD. Whereas currency of Pakistan and Sri-Lanka showed a staggering fall against USD. Sri Lankan Rupee (currency of Sri Lanka) suffered a huge 500% fall in last 20 years, it fell from 36 LCU in 1989 to 157 in 2018. Meanwhile, Pakistani Rupee (currency of Pakistan) tanked nearly 600%.
